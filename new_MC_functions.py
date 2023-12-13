@@ -8,6 +8,10 @@ from tqdm import tqdm
 from joblib import Parallel, delayed 
 from photon_functions import *
 
+###################################my Imports
+import numpy as np
+from scipy.integrate import solve_ivp, odeint 
+
 amu = 1.66e-27 # Atomic ma87ss unit --> kg
 m = 166 * amu # Erbium166 isotope mass in kg
 # m = 87 * amu # Rb
@@ -26,6 +30,8 @@ lambd841 = 841e-9
 
 Gamma583 = 2*np.pi * 180e3
 Gamma841 = 2*np.pi * 8e3
+
+#Make it for both atoms
 
 def generateInitialCond(P,T,w0,n_samples=int(1e3),alpha=alpha_GS,lambd=lambd_trap):
     u0 = P*alpha / (np.pi*c*e0*w0**2)
@@ -52,59 +58,135 @@ def generateInitialCond(P,T,w0,n_samples=int(1e3),alpha=alpha_GS,lambd=lambd_tra
 
 
 
-def trapPotential(r,P,w0,alpha=alpha_GS, lambd=lambd_trap):
-    x,y,z = r
+def trapPotential(r1,r2,P,w0,PotFlag,alpha=alpha_GS, lambd=lambd_trap):
+    x1,y1,z1 = r1
+    x2,y2,z2 = r2
     U0 = P*alpha / (np.pi * e0 * c * w0**2)
     zR = np.pi * w0**2 / lambd
-    U = -U0/(1+(z/zR)**2) * np.exp(-2/(w0**2) * (x**2 + y**2) / (1+(z/zR)**2))
+    
+    if PotFlag == 1:
+        #print(x1-x2)
+        C3 = 1.47797e-48  #Antonio notes in amu -> convert to SI
+        rr = np.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)
+        LJ = C3/(rr**3)
+        U = -U0/(1+(z1/zR)**2) * np.exp(-2/(w0**2) * (x1**2 + y1**2) / (1+(z1/zR)**2)) + LJ
+        #print(U-U0/(1+(z1/zR)**2) * np.exp(-2/(w0**2) * (x1**2 + y1**2) / (1+(z1/zR)**2)))
+    else:
+        U = -U0/(1+(z1/zR)**2) * np.exp(-2/(w0**2) * (x1**2 + y1**2) / (1+(z1/zR)**2))
+   
+    #C6 = 2
+    #Vector between first and second atom
+    # if PotFlag == 1:
+    #      r12 = np.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)
+    #      a = (C3/r12**3)
+    #      print(x1, x2)
+    #      #Adding potential from second atom (last term)
+    #      U = -U0/(1+(z1/zR)**2) * np.exp(-2/(w0**2) * (x1**2 + y1**2) / (1+(z1/zR)**2)) + a #- (C6/r12**6))
+    # else:
+    #      U = -U0/(1+(z1/zR)**2) * np.exp(-2/(w0**2) * (x1**2 + y1**2) / (1+(z1/zR)**2))
+   
+    #U = -U0/(1+(z1/zR)**2) * np.exp(-2/(w0**2) * (x1**2 + y1**2) / (1+(z1/zR)**2))
     return U
 
-
-def trapPotDerivs(r,U,w0,lambd=lambd_trap):
-    x,y,z = r
+'''Need to add the derivatives'''
+def trapPotDerivs(r1,r2,U,w0,PotFlag,lambd=lambd_trap):
+    x1,y1,z1 = r1
+    x2,y2,z2 = r2
     zR = np.pi*w0**2/lambd
-    z_term = np.sqrt(1+(z/zR)**2)
+    z_term = np.sqrt(1+(z1/zR)**2)
     
-    a_x = 4/m*x/(w0**2*z_term**2)*U
-    a_y = 4/m*y/(w0**2*z_term**2)*U
-    a_z = 2/m*z/(zR**4*w0**2*z_term**4)*(zR**2*(w0**2-2*(x**2+y**2)) + w0**2*z**2)*U
-    
+    if PotFlag == 1:
+        #print(x1-x2)
+        C3 = 1.47797e-48  #Antonio notes in amu -> convert to SI
+        rr = np.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)
+        LJ = C3/(rr**3)
+        
+        rr_diff_x = -(3*C3*(x1-x2))/rr**5
+        rr_diff_y = -(3*C3*(y1-y2))/rr**5
+        rr_diff_z = -(3*C3*(z1-z2))/rr**5
+        
+        #print(rr_diff_x)
+        
+        a_x = 4/m*x1/(w0**2*z_term**2)*U + rr_diff_x
+        a_y = 4/m*y1/(w0**2*z_term**2)*U + rr_diff_y
+        a_z = 2/m*z1/(zR**4*w0**2*z_term**4)*(zR**2*(w0**2-2*(x1**2+y1**2)) + w0**2*z1**2)*U + rr_diff_z
+        
+        #print(a_x)
+    else:    
+        a_x = 4/m*x1/(w0**2*z_term**2)*U
+        a_y = 4/m*y1/(w0**2*z_term**2)*U
+        a_z = 2/m*z1/(zR**4*w0**2*z_term**4)*(zR**2*(w0**2-2*(x1**2+y1**2)) + w0**2*z1**2)*U
+        
     return [a_x, a_y, a_z]
 
 def kineticEnergy(v):
     return m/2 * sum(abs(v)**2)
 
 
-def trapEvol(rvVector, P, w0):
-    r = rvVector[:3]
-    v = rvVector[3:]
-    DrDt = [0]*6
-    U = trapPotential(r,P,w0)
+def trapEvol(rvVector, t, P, w0, PotFlag):
+    DrDt = [0]*6*2
+    
+    r1 = rvVector[:3]
+    v1 = rvVector[3:6]
+    r2 = rvVector[6:9]
+    v2 = rvVector[9:12]
+    
+    DrDt1 = [0]*6
+    U1 = trapPotential(r1,r2,P,w0,PotFlag)
 
-    ax,ay,az = trapPotDerivs(r,U,w0)
+    ax1,ay1,az1 = trapPotDerivs(r1,r2,U1,w0,PotFlag)
     
     for i in range(3):
-        DrDt[i] = v[i]
+        DrDt1[i] = v1[i]
     
-    DrDt[3] = ax; DrDt[4] = ay; DrDt[5] = az - g
+    DrDt1[3] = ax1; DrDt1[4] = ay1; DrDt1[5] = az1 - g
     
-    return np.array(DrDt)
+    DrDt2 = [0]*6
+    U2 = trapPotential(r2,r1,P,w0,PotFlag)
 
-
-def odeRK45_solver(rvFunc, y0, dt, P, w0):
-    k1 = dt * rvFunc(y0, P, w0)
-    k2 = dt * rvFunc(y0+0.5*k1, P, w0)
-    k3 = dt * rvFunc(y0+0.5*k2, P, w0)
-    k4 = dt * rvFunc(y0+k3, P, w0)
-    y = y0 + (k1 + 2*k2 + 2*k3 + k4)/6
+    ax2,ay2,az2 = trapPotDerivs(r2,r1,U2,w0,PotFlag)
+    
+    for i in range(3):
+        DrDt2[i] = v2[i]
+    
+    DrDt2[3] = ax2; DrDt2[4] = ay2; DrDt2[5] = az2 - g
+   
+    #Put equations in a vector to "create" the system
+    for i in range(3):
+        DrDt[i] = v1[i]
+    for i in range(3):
+        DrDt[i+3] = DrDt1[i+3] 
+    for i in range(3):
+        DrDt[i+6] = v2[i]
+    for i in range(3):
+        DrDt[i+9] = DrDt2[i+3]
         
-    return np.array(y)
+    # rvVector = DrDt
+    # print(rvVector)
+    return DrDt #np.array(DrDt) 
+
+def odeRK45_solver(rvFunc, y0, dt, P, w0, currentTime, PotFlag):
+    #k1 = dt * rvFunc(y01, P, w0)
+    #k2 = dt * rvFunc(y01+0.5*k1, P, w0)
+    #k3 = dt * rvFunc(y01+0.5*k2, P, w0)
+    #k4 = dt * rvFunc(y01+k3, P, w0)
+    #y1 = y01 + (k1 + 2*k2 + 2*k3 + k4)/6
+    
+    #Using "new" method to solve the system
+    #y1 = solve_ivp(rvFunc, [currentTime,currentTime+dt], y0, method='RK45', dense_output=False, args=(P, w0))
+    y1 = odeint(rvFunc, y0, [0,dt], args=(P, w0, PotFlag))
+    
+    return y1
 
 def getAcStarkShift(rvVector, P, w0, alpha_E):
-    r = rvVector[:3]
-    U_g = trapPotential(r, P, w0)
-    U_e = trapPotential(r, P, w0, alpha=alpha_E)
-    acStarkShift = -(U_e-U_g)/hbar
+    r1 = rvVector[:3]
+    v1 = rvVector[3:6]
+    r2 = rvVector[6:9]
+    v2 = rvVector[9:12]
+    
+    U_g = trapPotential(r1, r2, P, w0)
+    U_e = trapPotential(r1, r2, P, w0, alpha=alpha_E)
+    acStarkShift = (U_e-U_g)/hbar
     return acStarkShift
 
 def recoilVel(absProj, lambd, case):
