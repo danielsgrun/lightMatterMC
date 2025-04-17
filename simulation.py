@@ -2,7 +2,6 @@
 # Includes definitions of ODT potential, RK4 time-evol.,
 # AC-Stark shift, recoil from photon abs./re-emission etc. #
 # as interfacing with the lightMatterMC Fotran 90 suite of codes
-# Developed by Daniel S. Grun in 2025
 
 
 import numpy as np
