@@ -1,3 +1,7 @@
+# Python code for generating a distribution of unitary vectors 
+# whose directions follow the probability distribution of "isotropic"
+# and "sigma" atomic transitions.
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
