@@ -184,6 +184,44 @@ contains
   end function odeRK4_solver
 
   
+  
+  function timeEvolution(rv1, rv2, dt, P, w0, alphas, C3, GSFlags)
+
+    implicit none
+    real(8) :: dt, P, w0, C3
+    real(8), dimension(2) :: alphas, GSFlags
+    real(8) :: C3zero
+    real(8), dimension(6) :: rv1, rv2, timeEvolution, GSTE
+    real(8), dimension(6) :: ex1bTE, ex2bTE, exTE, nullVec
+    
+    C3zero = 0.0
+    nullVec = [0., 0., 0., 0., 0., 0.]
+
+    if (GSFlags(1) > 0 .and. GSFlags(2) > 0) then   
+       GSTE = odeRK4_solver(rv1, rv2, dt, P, w0, alphas(1), C3zero)
+       ex1bTE = nullVec
+       ex2bTE = nullVec
+    elseif (GSFlags(1) == 0 .and. GSFlags(2) == 0) then
+       GSTE = nullVec
+       ex1bTE = odeRK4_solver(rv1, rv2, dt, P, w0, alphas(2), C3zero)
+       ex2bTE = nullVec
+    else
+       GSTE = nullVec
+       ex1bTE = nullVec
+       ex2bTE = odeRK4_solver(rv1, rv2, dt, P, w0, alphas(2), C3)
+    endif
+
+!!$    GSTE = odeRK4_solver(rv1, rv2, dt, P, w0, alphas(1), C3zero)
+!!$    ex1bTE = [0.,0.,0.,0.,0.,0.]
+!!$    ex2bTE = [0.,0.,0.,0.,0.,0.]
+       
+    timeEvolution = GSTE + ex1bTE + ex2bTE
+    ! timeEvolution =  odeRK4_solver(rv1, rv2, dt, P, w0, alphas(1), C3zero)
+
+  end function timeEvolution
+
+    
+
   real(8) function getAcStarkShift(rvVector, P, w0, alpha_E)
     implicit none
     real(8), dimension(6) :: rvVector

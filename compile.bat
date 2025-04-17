@@ -1,0 +1,1 @@
+f2py -c -m myLib physical_parameters.f90 MC_functions.f90 simulationLoss.f90 --build-dir myLib

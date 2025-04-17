@@ -2,6 +2,7 @@
 ! with illumination with near-resonant light.
 ! Includes photon absorption and spontaneous emission in the presence of
 ! a light field along with light-induced 2-body interactions between atoms.
+! Daniel S. Grun, Innsbruck 2025
 
 subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,s0,nBeams,lambd,Gammas,absProj,delta,alpha,spontCase,solution)
 
