@@ -93,6 +93,10 @@ contains
     LJ_diff_x = -(3*C3*(x1-x2))/rr**5
     LJ_diff_y = -(3*C3*(y1-y2))/rr**5
     LJ_diff_z = -(3*C3*(z1-z2))/rr**5
+
+!!$    LJ_diff_x = 0.
+!!$    LJ_diff_y = 0.
+!!$    LJ_diff_z = 0.
     
     ax = 4/m *x1/(w0**2*z_term**2)*U -1/m* LJ_diff_x
     ay = 4/m *y1/(w0**2*z_term**2)*U -1/m* LJ_diff_y

@@ -1,5 +1,5 @@
 # lightMatterMC
-Monte-Carlo simulation of N inside an optical dipole trap + light-matter interaction.
+Monte-Carlo simulation of up to 3 atoms (upgrades coming soon) inside an optical dipole trap + light-matter interaction.
 
 Implementation of the classical dynamics and stochastic photon absorption / re-emission is done with Fortran 90 and compiled as a Python library.
 

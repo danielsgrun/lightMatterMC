@@ -3,7 +3,7 @@
 ! Includes photon absorption and spontaneous emission in the presence of
 ! a light field along with light-induced 2-body interactions between atoms.
 
-subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,delta,alpha,spontCase,forcedSisyphus, modFreq, solution)
+subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,delta,alpha,spontCase,solution)
 
   use physical_parameters
   use MC_functions
@@ -19,9 +19,7 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
   real(8), dimension(2), intent(in) :: C3vals
   real(8), dimension(2) :: scattProbC3
   integer, intent(in) :: nBeams, nAtoms
-  integer, intent(in), optional :: forcedSisyphus
   real(8), intent(in) ::  P,T,w0
-  real(8), intent(in), optional :: modFreq
   real(8), dimension(3), intent(in) :: titf
   real(8), dimension(nBeams, 3), intent(in) :: absProj
   real(8), dimension(nAtoms,6), intent(in) :: firstInitialCond
@@ -37,41 +35,20 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
   real(8) :: lostTime, currentTime, sum3D, maxProbC3, deltaC3
   
   call random_seed  
-
-  ! Reading from the dipole emission pattern file ! 
-  spontEmissionArray = readSpontEmiFile(spontCase)
-
-
-  ! Defining simulation time-step and initial and final simulation times !
-  ti=titf(1); tf=titf(2); dt=titf(3)
-
   
-  ! Initializing variables for scattered photons, simulation time and excited-state time !
+  spontEmissionArray = readSpontEmiFile(spontCase)
+  
+  ti=titf(1); tf=titf(2); dt=titf(3)
+  
   phScatt = 0.0
   currentTime = 0.0
   passedTime = 0.0
 
-
-  ! initializing the initial-condition variable !
   initialCond = firstInitialCond
 
-
-  ! Probably needs cleaning?? !
   scatteredPhotons = 0
 
   !lost = 0.
-
-
-  ! Checking whether "forcedSisyphus" and "modFreq" were parsed !
-  if (.not. present(forcedSisyphus)) then
-     forcedSisyphus = 0 ! set to zero, so there's no modulation if forcedSisyphus is not parsed as 1
-  end if
-
-  if (.not. present(modFreq)) then
-     forcedSisyphus = 0 ! set to zero, so there's no modulation if no frequency is provided
-     modFreq = 1 ! doesn't matter, there will be no modulation with forcedSisyphus = 0
-  end if
-
   
   do while (currentTime < tf)
 

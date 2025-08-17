@@ -35,10 +35,10 @@ def simulation_wrapper(initialCond,P,T,w0,titf,C3vals,s0,lambd,Gammas,absProj,de
 
 def generateInitialCond(P,T,w0,n_samples=int(1e3), nAtoms=int(1), alpha=alpha_GS,lambd=lambd_trap):
     u0 = P*alpha / (np.pi*c*e0*w0**2)
-    # zR = np.pi*w0**2/lambd
+    zR = np.pi*w0**2/lambd
 
-    ratio = 10.
-    zR = ratio/np.sqrt(2.) * w0 # adjust zR to account for measured wr/wz ratio
+    # ratio = 10.
+    # zR = ratio/np.sqrt(2.) * w0 # adjust zR to account for measured wr/wz ratio
 
     T = 0.1 * u0/kB
 
