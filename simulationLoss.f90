@@ -27,7 +27,7 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
   real(8), dimension(nAtoms,6), intent(in) :: firstInitialCond
   real(8), dimension(nBeams), intent(in) :: s0, lambd, Gammas, delta, alpha
   real(8), dimension(nAtoms+1), intent(out) :: solution
-  real(8), dimension(nAtoms, 6) :: sols, initialCond
+  real(8), dimension(nAtoms, 6) :: sols, initialCond ! 6-dimensional for matching the correct phase-space
   real(8) :: scattProb, DopplerShift, acStarkShift, deltaTotal, ti, tf, dt
   real(8), dimension(nBeams) :: auxRatios, auxMasks
   real(8), dimension(nAtoms) :: maxRatio_atoms, distances
@@ -132,13 +132,13 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
 
         !print*, "Problem here?"
 
-        scatteredPhotons = scatteredPhotons + 1
+        scatteredPhotons = scatteredPhotons + 1 ! Decide on which of them
         
         recoil = recoilVel(absProj(index_beam,:), lambd(index_beam), "abs", absProj(index_beam,:)) ! parsing absProj(index,:)
         sols(indexAtom_excited,4:6) = sols(indexAtom_excited,4:6) + recoil          ! on last argument only for
                                                                                     ! only for type consistenty
         initialCond = sols                                                         
-        phScatt = phScatt + 1
+        phScatt = phScatt + 1 ! Decide on which of them 
 
         !        currentTime = currentTime + dt
         !        passedTime = dt
