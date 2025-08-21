@@ -1,18 +1,5 @@
 # Definitions of physical constants and a few atomic-related quantitites
 
-import numpy as np
-
-Gamma583 = 2*np.pi * 186e3 # Gamma of the 583 nm transition (in Hz)
-Gamma841 = 2*np.pi * 8e3 # Gamma of the 841 nm transition (in Hz)
-Gamma626 = 2*np.pi * 135e3 # Gamma of the 626 nm transition (Dy) (in Hz)
-Gamma401 = 2*np.pi * 28e6 # Gamma of the 401 nm transition (in Hz)
-
-lambd401 = 401e-9
-lambd583 = 583e-9
-lambd841 = 841e-9
-lambd626 = 626e-9
-lambd631 = 631e-9
-
 amu = 1.66e-27 # Atomic ma87ss unit --> kg
 m = 166 * amu # Erbium166 isotope mass in kg
 # m = 87 * amu # Rb
@@ -24,3 +11,8 @@ hbar = 1.05457e-34 # reduced Planck's constant
 lambd_trap = 488e-9
 a0 = 5.29e-11
 electronCharge = 1.6e-19
+
+
+conversion = 0.1482e-24 * 1.113e-16 # conversion from a.u. to S.I.
+
+alpha_GS = 430 * conversion # polarizability

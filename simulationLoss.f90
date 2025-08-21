@@ -4,14 +4,14 @@
 ! a light field along with light-induced 2-body interactions between atoms.
 
 subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,&
-     delta,alpha,spontCase,forcedSisyphusInput,modFreqInput,solution)
+     delta,alpha,spontCase,modulateAlphaInput,modFreqInput,solution)
 
   use physical_parameters
   use MC_functions
   
   implicit none
   
-  integer :: i, stopIndex, indexC3, j, scatteredPhotons, forcedSisyphus
+  integer :: i, stopIndex, indexC3, j, scatteredPhotons, modulateAlpha
   integer :: index_beam, indexAtom_excited, indexAtom_int, indexAtom_solo
   integer, parameter :: arrayLength = 1E4
   real(8), parameter :: arraySize = 1E4, C3null = 0
@@ -20,7 +20,7 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
   real(8), dimension(2), intent(in) :: C3vals
   real(8), dimension(2) :: scattProbC3
   integer, intent(in) :: nBeams, nAtoms
-  integer, intent(in), optional :: forcedSisyphusInput
+  integer, intent(in), optional :: modulateAlphaInput
   real(8), intent(in) ::  P,T,w0
   real(8), intent(in), optional :: modFreqInput
   real(8), dimension(3), intent(in) :: titf
@@ -64,17 +64,17 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
 
 
   ! Checking whether "forcedSisyphus" and "modFreq" were parsed !
-  if (.not. present(forcedSisyphusInput)) then
-     forcedSisyphus = 0 ! set to zero, so there's no modulation if forcedSisyphus is not parsed as 1
+  if (.not. present(modulateAlphaInput)) then
+     modulateAlpha = 0 ! set to zero, so there's no modulation if forcedSisyphus is not parsed as 1
   else
-     forcedSisyphus = forcedSisyphusInput
+     modulateAlpha = modulateAlphaInput
   end if
 
   if (.not. present(modFreqInput)) then
-     forcedSisyphus = 0 ! set to zero, so there's no modulation if no frequency is provided
+     modulateAlpha = 0 ! set to zero, so there's no modulation if no frequency is provided
      modFreq = 1 ! doesn't matter, there will be no modulation with forcedSisyphus = 0
   else
-     forcedSisyphus = forcedSisyphusInput
+     modulateAlpha = modulateAlphaInput
      modFreq = modFreqInput
   end if
 

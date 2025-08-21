@@ -3,14 +3,15 @@
 ! Includes photon absorption and spontaneous emission in the presence of
 ! a light field along with light-induced 2-body interactions between atoms.
 
-subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,delta,alpha,spontCase,solution)
+subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,&
+     delta,alpha,spontCase,modulateAlphaInput,modFreqInput,solution)
 
   use physical_parameters
   use MC_functions
   
   implicit none
   
-  integer :: i, stopIndex, indexC3, j, scatteredPhotons
+  integer :: i, stopIndex, indexC3, j, scatteredPhotons, forcedSisyphus
   integer :: index_beam, indexAtom_excited, indexAtom_int, indexAtom_solo
   integer, parameter :: arrayLength = 1E4
   real(8), parameter :: arraySize = 1E4, C3null = 0
@@ -19,36 +20,64 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
   real(8), dimension(2), intent(in) :: C3vals
   real(8), dimension(2) :: scattProbC3
   integer, intent(in) :: nBeams, nAtoms
+  integer, intent(in), optional :: modulateAlphaInput
   real(8), intent(in) ::  P,T,w0
+  real(8), intent(in), optional :: modFreqInput
   real(8), dimension(3), intent(in) :: titf
   real(8), dimension(nBeams, 3), intent(in) :: absProj
   real(8), dimension(nAtoms,6), intent(in) :: firstInitialCond
   real(8), dimension(nBeams), intent(in) :: s0, lambd, Gammas, delta, alpha
   real(8), dimension(nAtoms+1), intent(out) :: solution
-  real(8), dimension(nAtoms, 6) :: sols, initialCond
+  real(8), dimension(nAtoms, 6) :: sols, initialCond ! 6-dimensional for matching the correct phase-space
   real(8) :: scattProb, DopplerShift, acStarkShift, deltaTotal, ti, tf, dt
   real(8), dimension(nBeams) :: auxRatios, auxMasks
   real(8), dimension(nAtoms) :: maxRatio_atoms, distances
   integer, dimension(nAtoms) :: index_atoms
   character(len=1), intent(in) :: spontCase
   real(8) :: auxNum, auxRatio, waitTime, passedTime, phScatt, minSep
-  real(8) :: lostTime, currentTime, sum3D, maxProbC3, deltaC3
+  real(8) :: lostTime, currentTime, sum3D, maxProbC3, deltaC3, modFreq
   
   call random_seed  
-  
+
+  ! Reading from the dipole emission pattern file ! 
   spontEmissionArray = readSpontEmiFile(spontCase)
-  
+
+
+  ! Defining simulation time-step and initial and final simulation times !
   ti=titf(1); tf=titf(2); dt=titf(3)
+
   
+  ! Initializing variables for scattered photons, simulation time and excited-state time !
   phScatt = 0.0
   currentTime = 0.0
   passedTime = 0.0
 
+
+  ! initializing the initial-condition variable !
   initialCond = firstInitialCond
 
+
+  ! Probably needs cleaning?? !
   scatteredPhotons = 0
 
   !lost = 0.
+
+
+  ! Checking whether "forcedSisyphus" and "modFreq" were parsed !
+  if (.not. present(modulateAlphaInput)) then
+     modulateAlpha = 0 ! set to zero, so there's no modulation if forcedSisyphus is not parsed as 1
+  else
+     modulateAlpha = modulateAlphaInput
+  end if
+
+  if (.not. present(modFreqInput)) then
+     modulateAlpha = 0 ! set to zero, so there's no modulation if no frequency is provided
+     modFreq = 1 ! doesn't matter, there will be no modulation with forcedSisyphus = 0
+  else
+     modulateAlpha = modulateAlphaInput
+     modFreq = modFreqInput
+  end if
+
   
   do while (currentTime < tf)
 
@@ -109,13 +138,13 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
 
         !print*, "Problem here?"
 
-        scatteredPhotons = scatteredPhotons + 1
+        scatteredPhotons = scatteredPhotons + 1 ! Decide on which of them
         
         recoil = recoilVel(absProj(index_beam,:), lambd(index_beam), "abs", absProj(index_beam,:)) ! parsing absProj(index,:)
         sols(indexAtom_excited,4:6) = sols(indexAtom_excited,4:6) + recoil          ! on last argument only for
                                                                                     ! only for type consistenty
         initialCond = sols                                                         
-        phScatt = phScatt + 1
+        phScatt = phScatt + 1 ! Decide on which of them 
 
         !        currentTime = currentTime + dt
         !        passedTime = dt
