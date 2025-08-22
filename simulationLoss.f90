@@ -3,15 +3,16 @@
 ! Includes photon absorption and spontaneous emission in the presence of
 ! a light field along with light-induced 2-body interactions between atoms.
 
-subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,&
-     delta,alpha,spontCase,modulateAlphaInput,modFreqInput,solution)
+subroutine create_simulation(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,nBeams,lambd,Gammas,absProj,&
+     delta,alpha,spontCase,modulateAlphaInput,modFreqInput,modAmpInput, &
+     modulateResonantBeamsInput, beamModPhaseInput, solution)
 
   use physical_parameters
   use MC_functions
   
   implicit none
   
-  integer :: i, stopIndex, indexC3, j, scatteredPhotons, modulateAlpha
+  integer :: i, stopIndex, indexC3, j, scatteredPhotons, modulateAlpha, modulateResBeam
   integer :: index_beam, indexAtom_excited, indexAtom_int, indexAtom_solo
   integer, parameter :: arrayLength = 1E4
   real(8), parameter :: arraySize = 1E4, C3null = 0
@@ -20,22 +21,23 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
   real(8), dimension(2), intent(in) :: C3vals
   real(8), dimension(2) :: scattProbC3
   integer, intent(in) :: nBeams, nAtoms
-  integer, intent(in), optional :: modulateAlphaInput
+  integer, intent(in), optional :: modulateAlphaInput, modulateResonantBeamsInput
   real(8), intent(in) ::  P,T,w0
-  real(8), intent(in), optional :: modFreqInput
+  real(8), intent(in), optional :: modFreqInput, beamModPhaseInput
+  real(8), intent(in), dimension(2), optional :: modAmpInput
   real(8), dimension(3), intent(in) :: titf
   real(8), dimension(nBeams, 3), intent(in) :: absProj
   real(8), dimension(nAtoms,6), intent(in) :: firstInitialCond
   real(8), dimension(nBeams), intent(in) :: s0, lambd, Gammas, delta, alpha
   real(8), dimension(nAtoms+1), intent(out) :: solution
   real(8), dimension(nAtoms, 6) :: sols, initialCond ! 6-dimensional for matching the correct phase-space
-  real(8) :: scattProb, DopplerShift, acStarkShift, deltaTotal, ti, tf, dt
+  real(8) :: scattProb, DopplerShift, acStarkShift, deltaTotal, ti, tf, dt,  modAmpGS, modAmpES
   real(8), dimension(nBeams) :: auxRatios, auxMasks
   real(8), dimension(nAtoms) :: maxRatio_atoms, distances
   integer, dimension(nAtoms) :: index_atoms
   character(len=1), intent(in) :: spontCase
   real(8) :: auxNum, auxRatio, waitTime, passedTime, phScatt, minSep
-  real(8) :: lostTime, currentTime, sum3D, maxProbC3, deltaC3, modFreq
+  real(8) :: lostTime, currentTime, sum3D, maxProbC3, deltaC3, modFreq, beamModPhase
   
   call random_seed  
 
@@ -70,12 +72,20 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
      modulateAlpha = modulateAlphaInput
   end if
 
-  if (.not. present(modFreqInput)) then
+  if (.not. present(modFreqInput) .or. &
+       .not. present(modAmpInput) .or. &
+       .not. present(modulateResonantBeamsInput)) then
      modulateAlpha = 0 ! set to zero, so there's no modulation if no frequency is provided
      modFreq = 1 ! doesn't matter, there will be no modulation with forcedSisyphus = 0
+     modAmpGS = 0 ! doesn't matter, ...
+     modAmpES = 0 ! doesn't matter, ...
   else
      modulateAlpha = modulateAlphaInput
      modFreq = modFreqInput
+     modAmpGS = modAmpInput(1)
+     modAmpES = modAmpInput(2)
+     beamModPhase = beamModPhaseInput
+     modulateResBeam = modulateResonantBeamsInput
   end if
 
   
@@ -84,8 +94,10 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
      do j=1,nAtoms
 
         lost(j) = checkLost(initialCond(j,:), P, w0, C3null)
-        
-        sols(j,:) = odeRK4_solver(initialCond(j,:),initialCond(j,:),dt,P,w0,alpha_GS,C3null)
+
+        sols(j,:) = odeRK4_solver(initialCond(j,:),initialCond(j,:),dt,P,w0, &
+             alpha_GS + modulateAlpha*modAmpGS*sin(2*pi*modFreq*currentTime), & ! modul. only happens if modulateAlpha = 1
+             C3null)
         auxMasks = 0.0
         auxRatios = 0.0
 
@@ -102,7 +114,10 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
         do i=1,nBeams
         
            DopplerShift = getDopplerShift(sols(j,:), absProj(i,:), lambd(i))
-           acStarkShift = getAcStarkShift(sols(j,:), P, w0, alpha(i))
+           
+           acStarkShift = getAcStarkShift(sols(j,:), P, w0, &
+                alpha(i) + modulateAlpha*modAmpES*sin(2*pi*currentTime))
+           
            deltaTotal = 2*pi*delta(i) + DopplerShift + acStarkShift
 
            scattProb = Rscatt(Gammas(i), s0(i), deltaTotal)*dt
@@ -120,7 +135,10 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
 
      enddo
 
-     auxRatio = maxval(maxRatio_atoms) ! largest ratio within all atoms
+     auxRatio = maxval(maxRatio_atoms) * &
+          (1-modulateResBeam*(1-nint(sin(2*pi*currentTime - beamModPhase))))  ! largest ratio within all atoms
+          
+          
      indexAtom_excited = findloc(maxRatio_atoms, auxRatio, 1) ! which atom it corresps. to
      index_beam = index_atoms(indexAtom_excited) ! which beam it corresponds to 
 
@@ -142,7 +160,7 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
         
         recoil = recoilVel(absProj(index_beam,:), lambd(index_beam), "abs", absProj(index_beam,:)) ! parsing absProj(index,:)
         sols(indexAtom_excited,4:6) = sols(indexAtom_excited,4:6) + recoil          ! on last argument only for
-                                                                                    ! only for type consistenty
+                                                                                    ! type consistenty
         initialCond = sols                                                         
         phScatt = phScatt + 1 ! Decide on which of them 
 
@@ -182,8 +200,12 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
  
         do j=1,2
            DopplerShift = getDopplerShift(sols(indexAtom_excited,:), absProj(index_beam,:), lambd(index_beam))
-           acStarkShift = getAcStarkShift(sols(indexAtom_excited,:), P, w0, alpha(index_beam))
+           
+           acStarkShift = getAcStarkShift(sols(indexAtom_excited,:), P, w0, &
+                alpha(index_beam) + modulateAlpha*modAmpES*sin(2*pi*currentTime))
+
            deltaC3 = getDetuningFromC3(C3vals(j), sols(indexAtom_excited,:), sols(indexAtom_int,:))
+
            deltaTotal = 2*pi*delta(index_beam) + DopplerShift + acStarkShift + deltaC3
 
            !print*, deltaC3
@@ -205,13 +227,19 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
         
         do while (passedTime < waitTime)
            sols(indexAtom_solo,:) = odeRK4_solver(initialCond(indexAtom_solo,:), &
-                initialCond(indexAtom_solo,:), dt, P, w0, alpha(index_beam), C3null)
+                initialCond(indexAtom_solo,:), dt, P, w0, &
+                alpha(index_beam) + modulateAlpha*modAmpES*sin(2*pi*currentTime), &
+                C3null)
            
            sols(indexAtom_excited,:) = odeRK4_solver(initialCond(indexAtom_excited,:), &
-                initialCond(indexAtom_int,:), dt, P, w0, alpha(index_beam), C3vals(indexC3))
+                initialCond(indexAtom_int,:), dt, P, w0, &
+                alpha(index_beam) + modulateAlpha*modAmpES*sin(2*pi*currentTime), &
+                C3vals(indexC3))
 
            sols(indexAtom_int,:) = odeRK4_solver(initialCond(indexAtom_int,:), &
-                initialCond(indexAtom_excited,:), dt, P, w0, alpha(index_beam), C3vals(indexC3))
+                initialCond(indexAtom_excited,:), dt, P, w0, &
+                alpha(index_beam) + modulateAlpha*modAmpES*sin(2*pi*currentTime), &
+                C3vals(indexC3))
            
            currentTime = currentTime + dt
            passedTime = passedTime + dt
@@ -252,7 +280,7 @@ subroutine create_simulation_loss(firstInitialCond,P,T,w0,titf,C3vals,nAtoms,s0,
 
   end do
 
-end subroutine create_simulation_loss
+end subroutine create_simulation
         
      
    

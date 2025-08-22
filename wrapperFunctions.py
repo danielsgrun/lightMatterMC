@@ -8,7 +8,9 @@ from tqdm import tqdm
 class simClass:
     def __init__(self, P, T, w0, titf, C3Vals, s0=[0], nBeams=1, lambd=[lambd583], 
                  Gammas=[Gamma583], absProj=[[1.0,0,0]], deltas=[0], alphas=[alpha_GS],
-                 n_samples=int(1e3), nAtoms=3, n_jobs=1, spontCase='s', modFreq=1, modulateAlpha=0):
+                 n_samples=int(1e3), nAtoms=3, n_jobs=1, spontCase='s', modFreq=1, 
+                 modulateAlpha=0, modAmp=[0,0],
+                 modulateResonantBeams=0, beamModPhase=0):
         
         '''
         
@@ -57,6 +59,13 @@ class simClass:
             Frequency of modulation for the polarizabilities. The default is 1.
         modulateAlpha : int, optional
             Modulate the polarizabilities in time (1 or 0). The default is 0.
+        modAmp : list/array of float, optional
+            Amplitude of modulation for the polarizabilities (in S.I. unit of polarizability).
+            Should contain [amplitude of alpha_GS(t), amplitude of alpha_ES(t)]. The default is [0,0].
+        modulateResonantBeams : int, optional
+            Whether to apply near-resonant light periodically, as a square wave. The default is 0.
+        beamModPhase : float, optional
+            Phase of the near-resonant square wave with respect to the polarizab. modulation. The default is 0.
 
         Returns
         -------
@@ -82,6 +91,9 @@ class simClass:
         self.spontCase = spontCase
         self.modFreq = modFreq
         self.modulateAlpha = modulateAlpha
+        self.modAmp = modAmp
+        self.modulateResonantBeams = modulateResonantBeams
+        self.beamModPhase = beamModPhase
 
     def _generateInitialCond(self):
         alpha = self.alphas[0]
@@ -112,11 +124,12 @@ class simClass:
         return initialCond
 
     def _simulation_wrapper(self, initialCond):
-        return myLib.create_simulation_loss(
+        return myLib.create_simulation(
             initialCond, self.P, self.T, self.w0, self.titf,
             self.C3Vals, self.s0, self.lambd, self.Gammas,
             self.absProj, self.deltas, self.alphas, self.spontCase, 
-            self.nAtoms, self.nBeams, self.modulateAlpha, self.modFreq
+            self.nAtoms, self.nBeams, self.modulateAlpha, self.modFreq,
+            self.modAmp, self.modulateResonantBeams, self.beamModPhase
         )
 
     def run_simulation_loss(self):

@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     C3Vals = np.array([C3u, -C3g]) * 1
     
-    P = 3.2e-3 # trap power, in W
+    P = 1.6e-3 # trap power, in W
     T = 10e-6 # temperature, in K
     w0 = 0.8e-6 # trap waist, in um
     
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     
     s0 = [s0h, s0v]
  
-    n_samples = int(20) # we should do everything with the same # of samples. Choose either 3e2 or 1e3.
+    n_samples = int(100) # we should do everything with the same # of samples. Choose either 3e2 or 1e3.
     
     nBeams = 2
     
@@ -66,6 +66,9 @@ if __name__ == "__main__":
     
     modFreq = 1
     modulateAlpha = 0
+    modAmp = [0,0]
+    modulateResonantBeams = 0
+    beamModPhase = 0
     
     #%% 
     ## The following functions are defined as different scans (i.e. "different measurements") ##
@@ -87,7 +90,10 @@ if __name__ == "__main__":
         'n_samples': n_samples,
         'nAtoms': nAtoms,
         'modFreq': modFreq,
-        'modulateAlpha': modulateAlpha
+        'modulateAlpha': modulateAlpha,
+        'modAmp' : modAmp,
+        'modulateResonantBeams' : modulateResonantBeams,
+        'beamModPhase' : beamModPhase
     }
     
     static_params = {
