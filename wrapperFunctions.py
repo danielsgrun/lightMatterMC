@@ -14,42 +14,49 @@ class simClass:
         
         Parameters
         ----------
-        P : TYPE
-            DESCRIPTION.
-        T : TYPE
-            DESCRIPTION.
-        w0 : TYPE
-            DESCRIPTION.
-        titf : TYPE
-            DESCRIPTION.
-        C3Vals : TYPE
-            DESCRIPTION.
-        s0 : TYPE, optional
-            DESCRIPTION. The default is [0].
-        nBeams : TYPE, optional
-            DESCRIPTION. The default is 1.
-        lambd : TYPE, optional
-            DESCRIPTION. The default is [lambd583].
-        Gammas : TYPE, optional
-            DESCRIPTION. The default is [Gamma583].
-        absProj : TYPE, optional
-            DESCRIPTION. The default is [[1.0,0,0]].
-        deltas : TYPE, optional
-            DESCRIPTION. The default is [0].
-        alphas : TYPE, optional
-            DESCRIPTION. The default is [alpha_GS].
-        n_samples : TYPE, optional
-            DESCRIPTION. The default is int(1e3).
-        nAtoms : TYPE, optional
-            DESCRIPTION. The default is 3.
-        n_jobs : TYPE, optional
-            DESCRIPTION. The default is 1.
-        spontCase : TYPE, optional
-            DESCRIPTION. The default is 's'.
-        modFreq : TYPE, optional
-            DESCRIPTION. The default is 1.
-        modulateAlpha : TYPE, optional
-            DESCRIPTION. The default is 0.
+        P : float
+            Power of a single optical tweezer (in W).
+        T : float
+            Temperature of the ensemble of samples (in K).
+        w0 : float
+            Minimum waist of a single optical tweezer (in m).
+        titf : list/array of float.
+            [Initial time, final time, time-step] (in s).
+        C3Vals : list/array of float.
+            [Repulsive C3 (pos.), attractive C3 (neg.)].
+        s0 : list/array of float, optional
+            list/array containing saturation parameters for each near-resonant beam.
+            [s0 (beam 1), s1 (beam 2), ... sn (beam n)]. The default is [0].
+        nBeams : integer, optional
+            Number of near-resonant beams. The default is 1.
+        lambd : list/array of float, optional
+            list/array containing the wavelength of each near-resonant beam (in m).
+            [lambda1 (beam 1), lambda2 (beam 2), ... lambdan (beam n)]. The default is [lambd583].
+        Gammas : list/array of float, optional
+            list/array containing the Gamma of the transition caused by each near-resonant beam (in 1/s).
+            [Gamma1 (beam 1), Gamma2 (beam 2), ... Gamman (beam n)]. The default is [Gamma583].
+        absProj : list/array of lists/arrays, optional
+            list/array containing the unitary projection of each near-resonant beam. 
+            [[1,0,0] (beam 1), [0,0,1] (beam 2), ... [0,1,0] (beam n)]. The default is [[1.0,0,0]].
+        deltas : list/array of float, optional
+            list/array containing the detuning from resonance of each near-resonant beam (in 1/s).
+            [Delta1 (beam 1), Delta2 (beam 2), ... Deltan (beam n)]. The default is [0].
+        alphas : list/array of float, optional
+            list/array containing the polarizability of the excited state corresp. to the a transition 
+            from each near-resonant beam (in S.I.).
+            [alpha1 (beam 1), alpha2 (beam 2), ... alphan (beam n)]. The default is [alpha_GS].
+        n_samples : int, optional
+            Number of samples for averaging. The default is int(1e3).
+        nAtoms : int, optional
+            Number of atoms per simulation run. The default is 3.
+        n_jobs : int, optional
+            Number of cores to be used when parallellizing. The default is 1.
+        spontCase : str, optional
+            Dipole emission pattern for spontaneous emissions to consider. The default is 's' ('sigma').
+        modFreq : float, optional
+            Frequency of modulation for the polarizabilities. The default is 1.
+        modulateAlpha : int, optional
+            Modulate the polarizabilities in time (1 or 0). The default is 0.
 
         Returns
         -------
