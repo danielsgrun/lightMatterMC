@@ -33,9 +33,12 @@ def run_scan(
     
     is_double_scan = len(scan_vars) == 2
     results = []
-
+    
     # Ensure templates aren't mutated
     base_template = deepcopy(param_template)
+    param_set = deepcopy(base_template)
+
+    
 
     if is_double_scan:
         var1, var2 = scan_vars
@@ -44,7 +47,6 @@ def run_scan(
         for j, val2 in enumerate(vals2):
             row = []
             for i, val1 in enumerate(vals1):
-                param_set = deepcopy(base_template)
                 param_set[var1] = val1
                 param_set[var2] = val2
 
@@ -59,14 +61,25 @@ def run_scan(
         var = scan_vars[0]
         vals = scan_values[0]
 
-        for val in vals:
-            param_set = deepcopy(base_template)
-            param_set[var] = val
-
-            runner = simClass(
-                **{**param_set, **static_params, **runner_args}
-            )
-            results.append(runner.survival_prob())
+        if (var == 'deltas' or 's0' or 'alphas'):
+            for val in vals:
+                param_set = deepcopy(base_template)
+                param_set[var] = [val] * param_set['nBeams']
+    
+                runner = simClass(
+                    **{**param_set, **static_params, **runner_args}
+                )
+                results.append(runner.survival_prob())
+        
+        else:
+            for val in vals:
+                param_set = deepcopy(base_template)
+                param_set[var] = val
+    
+                runner = simClass(
+                    **{**param_set, **static_params, **runner_args}
+                )
+                results.append(runner.survival_prob())
 
     # Build fileName with available values
     # Safely pull out only variables needed for formatting

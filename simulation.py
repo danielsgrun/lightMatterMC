@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     C3Vals = np.array([C3u, -C3g]) * 1
     
-    P = 1.6e-3 # trap power, in W
+    P = 3.2e-3 # trap power, in W
     T = 10e-6 # temperature, in K
     w0 = 0.8e-6 # trap waist, in um
     
@@ -70,15 +70,15 @@ if __name__ == "__main__":
     #%% 
     ## The following functions are defined as different scans (i.e. "different measurements") ##
         
-    scan_vars = ['P']
-    scan_values = [np.array([1,2,3])*1e-3]
+    scan_vars = ['deltas']
+    scan_values = [np.linspace(-4,4,10)*Gamma583/2/np.pi]
     
     param_template = {
-        'P': None,
+        'P': P,
         'C3Vals': C3Vals,
         'w0': w0,
         's0': s0,
-        'deltas': deltas,
+        'deltas': None,
         'alphas': [alpha_GS]*nBeams,
         'lambd': lambdas,
         'Gammas': Gammas,
